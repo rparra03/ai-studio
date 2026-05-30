@@ -114,6 +114,7 @@
   .pill.active-img .pill-price { color: #7c5cfc88; }
   .pill.active-vid { border-color: #3b82f6; color: #93c5fd; background: #0f1e38; }
   .pill.active-vid .pill-price { color: #3b82f688; }
+  .pill.active-cam { background: #0f2a1a; border-color: #22c55e; color: #22c55e; }
 
   /* Cost badge */
   .cost-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 10px 14px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px; }
@@ -387,6 +388,56 @@
       </div>
     </div>
 
+    <!-- Camera controls -->
+    <div class="card">
+      <div class="card-title">Movimiento de cámara</div>
+      <div class="model-pills" id="camPills" style="flex-wrap:wrap;">
+        <div class="pill active-cam" data-cam="" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🎯 Estático</span>
+        </div>
+        <div class="pill" data-cam="slow dolly forward, cinematic camera movement" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🎬 Dolly In</span>
+        </div>
+        <div class="pill" data-cam="slow dolly backward, pulling away from subject" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🎬 Dolly Out</span>
+        </div>
+        <div class="pill" data-cam="slow zoom in, lens compression" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🔍 Zoom In</span>
+        </div>
+        <div class="pill" data-cam="slow zoom out, revealing the scene" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🔎 Zoom Out</span>
+        </div>
+        <div class="pill" data-cam="smooth pan right, following the subject" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">➡️ Pan Right</span>
+        </div>
+        <div class="pill" data-cam="smooth pan left, following the subject" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">⬅️ Pan Left</span>
+        </div>
+        <div class="pill" data-cam="slow tilt up, revealing the sky" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">⬆️ Tilt Up</span>
+        </div>
+        <div class="pill" data-cam="slow tilt down, looking at the ground" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">⬇️ Tilt Down</span>
+        </div>
+        <div class="pill" data-cam="360 orbital camera movement around the subject" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🔄 Orbit</span>
+        </div>
+        <div class="pill" data-cam="handheld camera, slight shake, documentary style" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">📷 Handheld</span>
+        </div>
+        <div class="pill" data-cam="drone aerial shot, slowly descending" onclick="selectCam(this)" style="min-width:auto;">
+          <span class="pill-name">🚁 Drone</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:12px;color:#888;white-space:nowrap;">Intensidad:</span>
+        <input type="range" id="camIntensity" min="0" max="2" step="1" value="1"
+          style="flex:1;accent-color:#3b82f6;" oninput="updateCamIntensityLabel(this.value)">
+        <span id="camIntensityLabel" style="font-size:12px;color:#60a5fa;width:60px;">Normal</span>
+      </div>
+      <div id="camPreview" style="font-size:11px;color:#555;margin-top:8px;font-style:italic;"></div>
+    </div>
+
     <!-- Modelo de video -->
     <div class="card">
       <div class="card-title">Modelo y configuración</div>
@@ -548,6 +599,42 @@ function selectImgModel(el) {
 }
 
 // ─── VIDEO MODEL SELECTION ────────────────────────────────────────────────────
+// ─── CAMERA CONTROLS ─────────────────────────────────────────────────────────
+const CAM_INTENSITY = ["slow", "smooth", "dramatic fast"];
+const CAM_INTENSITY_LABELS = ["Suave", "Normal", "Dramático"];
+
+function selectCam(el) {
+  document.querySelectorAll("#camPills .pill").forEach(p => p.classList.remove("active-cam"));
+  el.classList.add("active-cam");
+  updateCamPreview();
+}
+
+function updateCamIntensityLabel(val) {
+  document.getElementById("camIntensityLabel").textContent = CAM_INTENSITY_LABELS[val];
+  updateCamPreview();
+}
+
+function updateCamPreview() {
+  const active = document.querySelector("#camPills .pill.active-cam");
+  const base = active?.dataset.cam || "";
+  const preview = document.getElementById("camPreview");
+  if (!base) { preview.textContent = "Sin movimiento de cámara adicional."; return; }
+  const intensity = parseInt(document.getElementById("camIntensity").value);
+  const phrase = base.replace(/^slow|^smooth/, CAM_INTENSITY[intensity]);
+  preview.textContent = `Se añadirá al prompt: "${phrase}"`;
+}
+
+function getCamPhrase() {
+  const active = document.querySelector("#camPills .pill.active-cam");
+  const base = active?.dataset.cam || "";
+  if (!base) return "";
+  const intensity = parseInt(document.getElementById("camIntensity")?.value || 1);
+  return base.replace(/^slow|^smooth/, CAM_INTENSITY[intensity]);
+}
+
+// Init cam preview on load
+document.addEventListener("DOMContentLoaded", () => updateCamPreview());
+
 function selectVidModel(el) {
   document.querySelectorAll("#vidModelPills .pill").forEach(p => p.classList.remove("active-vid"));
   el.classList.add("active-vid");
@@ -1144,10 +1231,14 @@ async function generateVideo() {
       imageUrl = imgDataUrl;
     }
 
+    const camPhrase = getCamPhrase();
+    const finalPrompt = camPhrase ? `${prompt}, ${camPhrase}` : prompt;
+    console.log("[video] final prompt:", finalPrompt);
+
     const nativeAudio = document.getElementById("nativeAudioToggle").checked;
     const body = {
       model: selectedVidModel,
-      prompt,
+      prompt: finalPrompt,
       duration: parseInt(duration),
       aspect_ratio: aspect,
       generate_audio: nativeAudio,
