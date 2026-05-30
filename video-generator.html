@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Studio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d0d0f; color: #e8e8e8; min-height: 100vh; }
+  .app { max-width: 860px; margin: 0 auto; padding: 36px 24px; }
+  h1 { font-size: 24px; font-weight: 700; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #666; margin-bottom: 20px; }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .balance-badge { display: flex; align-items: center; gap: 8px; background: #16161a; border: 1px solid #2a2a30; border-radius: 99px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; text-decoration: none; }
+  .balance-badge:hover { border-color: #3b82f6; }
+  .balance-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #16161a; border: 1px solid #2a2a30; border-radius: 10px; padding: 4px; }
+  .tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all 0.15s; color: #555; border: none; background: none; }
+  .tab.active { background: #0d0d0f; color: #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+  .tab.img-tab.active { color: #a78bfa; }
+  .tab.vid-tab.active { color: #60a5fa; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .card { background: #16161a; border: 1px solid #2a2a30; border-radius: 12px; padding: 20px 22px; margin-bottom: 18px; }
+  .card-title { font-size: 12px; font-weight: 600; color: #888; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+
+  input[type="password"], input[type="text"], textarea, select {
+    width: 100%; padding: 10px 14px; font-size: 14px;
+    background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px;
+    color: #e8e8e8; font-family: inherit; transition: border-color 0.15s;
+  }
+  input[type="password"] { font-family: monospace; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: #7c5cfc; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  select { cursor: pointer; }
+  .hint { font-size: 12px; color: #555; margin-top: 5px; }
+  a { color: #60a5fa; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Image upload */
+  .img-drop { border: 2px dashed #2a2a30; border-radius: 10px; padding: 28px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .img-drop:hover, .img-drop.over { border-color: #3b82f6; background: #0f1e38; }
+  .img-drop input { display: none; }
+  .img-drop-icon { font-size: 32px; margin-bottom: 8px; }
+  .img-drop-text { font-size: 13px; color: #666; }
+  .img-preview { display: none; position: relative; }
+  .img-preview img { width: 100%; max-height: 280px; object-fit: cover; border-radius: 8px; }
+  .img-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border: none; color: #fff; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; line-height: 28px; text-align: center; }
+  .img-change { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); border: 1px solid #3b82f6; color: #60a5fa; border-radius: 8px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: 0; transition: opacity 0.15s; }
+  .img-preview:hover .img-change { opacity: 1; }
+
+  /* Character composition */
+  .comp-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+  .char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .char-slot { border: 2px dashed #2a2a30; border-radius: 8px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; font-size: 11px; color: #555; gap: 4px; }
+  .char-slot:hover { border-color: #7c5cfc; background: #1a1030; color: #a78bfa; }
+  .char-slot input { display: none; }
+  .char-slot-icon { font-size: 22px; }
+  .char-preview-wrap { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; display: none; }
+  .char-preview-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .char-rm { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: none; color: #fff; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 13px; line-height: 20px; text-align: center; padding: 0; }
+  .char-label { font-size: 10px; color: #555; text-align: center; margin-top: 4px; }
+
+  /* Enhance */
+  .enhance-row { display: flex; gap: 8px; align-items: flex-start; }
+  .enhance-row textarea { flex: 1; }
+  .enhance-btn { padding: 10px 14px; background: #1a1030; border: 1px solid #7c5cfc; border-radius: 8px; color: #a78bfa; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; flex-shrink: 0; }
+  .enhance-btn:hover { background: #2a1a50; }
+  .enhance-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Buttons */
+  .gen-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; color: #fff; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.15s; margin-top: 4px; }
+  .gen-btn:hover { opacity: 0.9; }
+  .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .gen-btn.img { background: linear-gradient(90deg, #7c5cfc, #a855f7); }
+  .gen-btn.vid { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+
+  .use-btn { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; background: linear-gradient(90deg, #3b82f6, #6366f1); color: #fff; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.15s; margin-top: 10px; }
+  .use-btn:hover { opacity: 0.9; }
+
+  /* Status */
+  .status-box { background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #888; min-height: 48px; }
+  .status-box.active { border-color: #7c5cfc; color: #a78bfa; }
+  .status-box.done { border-color: #22c55e; color: #4ade80; }
+  .status-box.error { border-color: #ef4444; color: #f87171; }
+  .progress-wrap { background: #1a1a20; border-radius: 99px; height: 4px; margin-top: 10px; overflow: hidden; display: none; }
+  .progress-bar { height: 4px; border-radius: 99px; width: 0%; transition: width 0.5s ease; }
+  .progress-bar.img { background: linear-gradient(90deg, #7c5cfc, #a855f7); }
+  .progress-bar.vid { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+
+  /* Results */
+  .result-card { background: #16161a; border: 1px solid #22c55e; border-radius: 12px; padding: 20px; margin-top: 18px; }
+  .result-label { font-size: 12px; color: #4ade80; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  video, .result-img { width: 100%; border-radius: 8px; background: #000; }
+  .dl-btn { display: inline-block; margin-top: 12px; padding: 8px 20px; background: #1a2e1a; border: 1px solid #22c55e; border-radius: 8px; color: #4ade80; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; margin-right: 8px; }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #444; border-top-color: #a78bfa; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Pills */
+  .model-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { padding: 5px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid #2a2a30; cursor: pointer; transition: all 0.15s; color: #888; background: #0d0d0f; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 80px; text-align: center; }
+  .pill .pill-name { font-size: 12px; }
+  .pill .pill-price { font-size: 10px; color: #555; font-weight: 400; }
+  .pill.active-img { border-color: #7c5cfc; color: #c4b5fd; background: #1a1030; }
+  .pill.active-img .pill-price { color: #7c5cfc88; }
+  .pill.active-vid { border-color: #3b82f6; color: #93c5fd; background: #0f1e38; }
+  .pill.active-vid .pill-price { color: #3b82f688; }
+
+  /* Cost badge */
+  .cost-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 10px 14px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px; }
+  .cost-label { font-size: 12px; color: #666; }
+  .cost-value { font-size: 14px; font-weight: 700; }
+  .cost-value.cheap { color: #4ade80; }
+  .cost-value.mid { color: #facc15; }
+  .cost-value.expensive { color: #f87171; }
+  .cost-note { font-size: 11px; color: #555; }
+
+  /* Image from gen badge */
+  .from-gen-badge { font-size:12px; color:#a78bfa; padding:6px 12px; background:#1a1030; border:1px solid #7c5cfc33; border-radius:8px; margin-bottom:10px; display:none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header-row">
+    <div>
+      <h1>✦ AI Studio</h1>
+      <p class="sub">Genera imágenes y videos con IA · OpenRouter</p>
+    </div>
+    <a href="https://openrouter.ai/credits" target="_blank" class="balance-badge">
+      <div class="balance-dot"></div>
+      <span style="color:#aaa;">Ver créditos →</span>
+    </a>
+  </div>
+
+  <!-- API Keys (compartidas) -->
+  <div class="card">
+    <div class="card-title">API Keys</div>
+    <div class="row">
+      <div class="field">
+        <div class="field-label">OpenRouter API Key</div>
+        <input type="password" id="orKey" placeholder="sk-or-v1-..." autocomplete="off">
+        <div class="hint"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
+      </div>
+      <div class="field">
+        <div class="field-label">imgbb API Key <span style="color:#555;font-weight:400;">(para videos)</span></div>
+        <input type="text" id="imgbbKey" placeholder="xxxxxxxxxxxxxxxx" autocomplete="off">
+        <div class="hint">Gratis en <a href="https://api.imgbb.com/" target="_blank">api.imgbb.com</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab img-tab active" onclick="switchTab('img')">🎨 Generar Imagen</button>
+    <button class="tab vid-tab" onclick="switchTab('vid')">🎬 Generar Video</button>
+  </div>
+
+  <!-- ═══════════════════ TAB: IMAGEN ═══════════════════ -->
+  <div class="tab-content active" id="tab-img">
+
+    <div class="card">
+      <div class="card-title">Prompt de imagen</div>
+      <div class="field">
+        <div class="enhance-row">
+          <textarea id="imgPrompt" placeholder="Ej: portrait of a woman with golden eyes, cosmic nebula background, cinematic lighting, ultra detailed…" rows="3"></textarea>
+          <button class="enhance-btn" id="enhanceImgBtn" onclick="enhanceImgPrompt()">✨ Mejorar<br>con IA</button>
+        </div>
+        <div class="hint" id="enhanceImgStatus"></div>
+      </div>
+    </div>
+
+    <!-- Composition card -->
+    <div class="card">
+      <div class="comp-toggle" onclick="toggleComp()">
+        <div class="card-title" style="margin-bottom:0;">👥 Composición con personajes <span style="font-size:11px;color:#555;font-weight:400;text-transform:none;letter-spacing:0;">· opcional</span></div>
+        <span id="compChevron" style="color:#555;font-size:13px;transition:transform 0.2s;">▼</span>
+      </div>
+      <div id="compSection" style="display:none;margin-top:14px;">
+        <div class="hint" style="margin-bottom:12px;">Sube hasta 4 fotos de personajes → la IA analiza cada uno → construye un prompt de composición → genera la escena.</div>
+        <div class="char-grid">
+          <!-- Slot 0 -->
+          <div>
+            <div class="char-slot" id="charSlot0" onclick="document.getElementById('charInput0').click()">
+              <input type="file" id="charInput0" accept="image/*" onchange="loadChar(0,this.files[0])">
+              <span class="char-slot-icon">👤</span>
+              <span>Personaje 1</span>
+            </div>
+            <div class="char-preview-wrap" id="charPreview0">
+              <img id="charThumb0" src="" alt="">
+              <button class="char-rm" onclick="clearChar(0)">×</button>
+            </div>
+            <div class="char-label" id="charLabel0">Personaje 1</div>
+          </div>
+          <!-- Slot 1 -->
+          <div>
+            <div class="char-slot" id="charSlot1" onclick="document.getElementById('charInput1').click()">
+              <input type="file" id="charInput1" accept="image/*" onchange="loadChar(1,this.files[0])">
+              <span class="char-slot-icon">👤</span>
+              <span>Personaje 2</span>
+            </div>
+            <div class="char-preview-wrap" id="charPreview1">
+              <img id="charThumb1" src="" alt="">
+              <button class="char-rm" onclick="clearChar(1)">×</button>
+            </div>
+            <div class="char-label">Personaje 2</div>
+          </div>
+          <!-- Slot 2 -->
+          <div>
+            <div class="char-slot" id="charSlot2" onclick="document.getElementById('charInput2').click()">
+              <input type="file" id="charInput2" accept="image/*" onchange="loadChar(2,this.files[0])">
+              <span class="char-slot-icon">👤</span>
+              <span>Personaje 3</span>
+            </div>
+            <div class="char-preview-wrap" id="charPreview2">
+              <img id="charThumb2" src="" alt="">
+              <button class="char-rm" onclick="clearChar(2)">×</button>
+            </div>
+            <div class="char-label">Personaje 3</div>
+          </div>
+          <!-- Slot 3 -->
+          <div>
+            <div class="char-slot" id="charSlot3" onclick="document.getElementById('charInput3').click()">
+              <input type="file" id="charInput3" accept="image/*" onchange="loadChar(3,this.files[0])">
+              <span class="char-slot-icon">👤</span>
+              <span>Personaje 4</span>
+            </div>
+            <div class="char-preview-wrap" id="charPreview3">
+              <img id="charThumb3" src="" alt="">
+              <button class="char-rm" onclick="clearChar(3)">×</button>
+            </div>
+            <div class="char-label">Personaje 4</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <div class="field-label">Describe la escena</div>
+          <textarea id="sceneDesc" placeholder="Ej: los 4 personajes enfrentados en una arena oscura lista para pelear, iluminación dramática, estilo anime cinematográfico…" rows="2"></textarea>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <div class="field-label">Modelo para "Generar escena directo"</div>
+          <select id="composeModelSel" style="font-size:12px;">
+            <option value="openai/gpt-5-image">GPT-5 Image (~$0.04/img) — recomendado para personas reales</option>
+            <option value="openai/gpt-5-image-mini">GPT-5 Image Mini (~$0.008/img) — rápido y económico</option>
+            <option value="google/gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image (~$0.02/img)</option>
+            <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image (~$0.01/img)</option>
+            <option value="black-forest-labs/flux.2-pro">Flux.2 Pro (~$0.05/img)</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="enhance-btn" id="composeBtn" onclick="composeScene()" style="flex:1;padding:11px;font-size:12px;">
+            📝 Construir prompt
+          </button>
+          <button class="enhance-btn" id="composeDirectBtn" onclick="composeSceneDirect()" style="flex:1;padding:11px;font-size:12px;background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+            🎭 Generar escena directo
+          </button>
+        </div>
+        <div class="hint" style="margin-top:6px;color:#9ca3af;font-size:11px;">💡 <b>Generar escena directo</b> pasa las fotos al modelo elegido. GPT-5 Image acepta fotos de personas reales sin bloqueos.</div>
+        <div class="hint" id="compStatus" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Modelo de imagen</div>
+      <div class="model-pills" id="imgModelPills">
+        <div class="pill active-img" data-img-model="black-forest-labs/flux.2-pro" data-img-modalities="image" data-img-price="0.05" onclick="selectImgModel(this)">
+          <span class="pill-name">Flux.2 Pro</span>
+          <span class="pill-price">~$0.05</span>
+        </div>
+        <div class="pill" data-img-model="black-forest-labs/flux.2-max" data-img-modalities="image" data-img-price="0.07" onclick="selectImgModel(this)">
+          <span class="pill-name">Flux.2 Max</span>
+          <span class="pill-price">~$0.07</span>
+        </div>
+        <div class="pill" data-img-model="black-forest-labs/flux.2-flex" data-img-modalities="image" data-img-price="0.06" onclick="selectImgModel(this)">
+          <span class="pill-name">Flux.2 Flex</span>
+          <span class="pill-price">~$0.06</span>
+        </div>
+        <div class="pill" data-img-model="black-forest-labs/flux.2-klein-4b" data-img-modalities="image" data-img-price="0.014" onclick="selectImgModel(this)">
+          <span class="pill-name">Flux.2 Klein</span>
+          <span class="pill-price">~$0.014</span>
+        </div>
+        <div class="pill" data-img-model="openai/gpt-5-image-mini" data-img-modalities="image,text" data-img-price="0.008" onclick="selectImgModel(this)">
+          <span class="pill-name">GPT-5 Image Mini</span>
+          <span class="pill-price">~$0.008</span>
+        </div>
+        <div class="pill" data-img-model="openai/gpt-5-image" data-img-modalities="image,text" data-img-price="0.04" onclick="selectImgModel(this)">
+          <span class="pill-name">GPT-5 Image</span>
+          <span class="pill-price">~$0.04</span>
+        </div>
+        <div class="pill" data-img-model="google/gemini-2.5-flash-image" data-img-modalities="image,text" data-img-price="0.01" onclick="selectImgModel(this)">
+          <span class="pill-name">Gemini 2.5 Flash</span>
+          <span class="pill-price">~$0.01</span>
+        </div>
+        <div class="pill" data-img-model="google/gemini-3.1-flash-image-preview" data-img-modalities="image,text" data-img-price="0.02" onclick="selectImgModel(this)">
+          <span class="pill-name">Gemini 3.1 Flash</span>
+          <span class="pill-price">~$0.02</span>
+        </div>
+        <div class="pill" data-img-model="bytedance-seed/seedream-4.5" data-img-modalities="image" data-img-price="0.04" onclick="selectImgModel(this)">
+          <span class="pill-name">Seedream 4.5</span>
+          <span class="pill-price">~$0.04</span>
+        </div>
+        <div class="pill" data-img-model="recraft-ai/recraft-v3" data-img-modalities="image" data-img-price="0.022" onclick="selectImgModel(this)">
+          <span class="pill-name">Recraft V3</span>
+          <span class="pill-price">~$0.022</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="field">
+          <div class="field-label">Tamaño</div>
+          <select id="imgSize">
+            <option value="1024x1024">1024×1024 — Cuadrado</option>
+            <option value="1792x1024">1792×1024 — Horizontal</option>
+            <option value="1024x1792">1024×1792 — Vertical</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Negative prompt (opcional)</div>
+          <input type="text" id="imgNeg" placeholder="blurry, low quality, distorted…">
+        </div>
+      </div>
+    </div>
+
+    <button class="gen-btn img" id="genImgBtn" onclick="generateImage()">Generar imagen</button>
+
+    <div style="margin-top:16px;">
+      <div class="status-box" id="imgStatusBox">Listo para generar.</div>
+      <div class="progress-wrap" id="imgProgressWrap">
+        <div class="progress-bar img" id="imgProgressBar"></div>
+      </div>
+    </div>
+
+    <div id="imgResultSection" style="display:none;">
+      <div class="result-card">
+        <div class="result-label">✓ Imagen generada</div>
+        <img class="result-img" id="generatedImg" src="" alt="resultado">
+        <br>
+        <a class="dl-btn" id="imgDlBtn" download="imagen.png">⬇ Descargar</a>
+        <button class="use-btn" onclick="useImageForVideo()" style="display:inline-block; width:auto; padding:8px 20px; margin-top:0;">
+          Usar para video → 🎬
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TAB: VIDEO ═══════════════════ -->
+  <div class="tab-content" id="tab-vid">
+
+    <!-- Imagen inicial -->
+    <div class="card">
+      <div class="card-title">Imagen inicial</div>
+      <div class="from-gen-badge" id="fromGenBadge">✨ Usando imagen generada en el tab anterior</div>
+      <div class="img-drop" id="imgDrop"
+        onclick="document.getElementById('imgInput').click()"
+        ondragover="dv(event,'over')" ondragleave="dv(event,'leave')" ondrop="dv(event,'drop')">
+        <input type="file" id="imgInput" accept="image/*" onchange="loadImg(this.files[0])">
+        <div class="img-drop-icon">🖼️</div>
+        <div class="img-drop-text">Arrastra una imagen o haz click · o usa la imagen generada ↑</div>
+      </div>
+      <div class="img-preview" id="imgPreview">
+        <img id="imgThumb" src="" alt="preview">
+        <button class="img-remove" onclick="clearImg()">×</button>
+        <button class="img-change" onclick="document.getElementById('imgInput').click()">🔄 Cambiar imagen</button>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:#60a5fa; padding:8px 12px; background:#0f1e38; border:1px solid #3b82f633; border-radius:8px;">
+        ⬆ La imagen se subirá a <strong>imgbb</strong> automáticamente al generar.
+      </div>
+    </div>
+
+    <!-- Prompt de video -->
+    <div class="card">
+      <div class="card-title">Prompt de movimiento</div>
+      <div class="field">
+        <div class="enhance-row">
+          <textarea id="vidPrompt" placeholder="Ej: la persona camina lentamente hacia la cámara, viento suave en el cabello, luz dorada de atardecer…" rows="3"></textarea>
+          <button class="enhance-btn" id="enhanceVidBtn" onclick="enhanceVidPrompt()">✨ Mejorar<br>con IA</button>
+        </div>
+        <div class="hint" id="enhanceVidStatus"></div>
+      </div>
+    </div>
+
+    <!-- Modelo de video -->
+    <div class="card">
+      <div class="card-title">Modelo y configuración</div>
+      <div class="model-pills" id="vidModelPills">
+        <div class="pill active-vid" data-vid-model="google/veo-3.1-fast" data-price="0.10" data-native-audio="true" data-durations="4,6,8" onclick="selectVidModel(this)">
+          <span class="pill-name">Veo 3.1 Fast 🔊</span>
+          <span class="pill-price">$0.10/s</span>
+        </div>
+        <div class="pill" data-vid-model="google/veo-3.1-lite" data-price="0.05" data-native-audio="true" data-durations="4,6,8" onclick="selectVidModel(this)">
+          <span class="pill-name">Veo 3.1 Lite 🔊</span>
+          <span class="pill-price">$0.05/s</span>
+        </div>
+        <div class="pill" data-vid-model="kwaivgi/kling-v3.0-pro" data-price="0.168" data-durations="3,5,10,15" onclick="selectVidModel(this)">
+          <span class="pill-name">Kling 3.0 Pro</span>
+          <span class="pill-price">$0.168/s</span>
+        </div>
+        <div class="pill" data-vid-model="kwaivgi/kling-v3.0-std" data-price="0.126" data-durations="3,5,10,15" onclick="selectVidModel(this)">
+          <span class="pill-name">Kling 3.0 Std</span>
+          <span class="pill-price">$0.126/s</span>
+        </div>
+        <div class="pill" data-vid-model="kwaivgi/kling-video-o1" data-price="0.10" data-durations="5,10" onclick="selectVidModel(this)">
+          <span class="pill-name">Kling O1</span>
+          <span class="pill-price">$0.10/s</span>
+        </div>
+        <div class="pill" data-vid-model="bytedance/seedance-2.0" data-price="0.14" data-native-audio="true" data-durations="5,10" onclick="selectVidModel(this)">
+          <span class="pill-name">Seedance 2.0 🔊</span>
+          <span class="pill-price">$0.14/s</span>
+        </div>
+        <div class="pill" data-vid-model="bytedance/seedance-2.0-fast" data-price="0.07" data-native-audio="true" data-durations="5,10" onclick="selectVidModel(this)">
+          <span class="pill-name">Seedance Fast 🔊</span>
+          <span class="pill-price">$0.07/s</span>
+        </div>
+        <div class="pill" data-vid-model="alibaba/wan-2.7" data-price="0.10" data-durations="5,10" onclick="selectVidModel(this)">
+          <span class="pill-name">Wan 2.7</span>
+          <span class="pill-price">$0.10/s</span>
+        </div>
+        <div class="pill" data-vid-model="alibaba/wan-2.6" data-price="0.10" data-durations="5,10,15" onclick="selectVidModel(this)">
+          <span class="pill-name">Wan 2.6</span>
+          <span class="pill-price">$0.10/s</span>
+        </div>
+        <div class="pill" data-vid-model="minimax/hailuo-2.3" data-price="0.07" data-durations="5,10" onclick="selectVidModel(this)">
+          <span class="pill-name">Hailuo 2.3</span>
+          <span class="pill-price">$0.07/s</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="field">
+          <div class="field-label">Duración</div>
+          <select id="duration" onchange="updateVidCost()">
+            <option value="4">4 segundos</option>
+            <option value="6">6 segundos</option>
+            <option value="8">8 segundos</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Aspecto</div>
+          <select id="aspect">
+            <option value="16:9">16:9 — Horizontal</option>
+            <option value="9:16">9:16 — Vertical (Reels)</option>
+            <option value="1:1">1:1 — Cuadrado</option>
+          </select>
+        </div>
+      </div>
+      <div class="cost-row" style="margin-top:14px;">
+        <div>
+          <div class="cost-label">Costo estimado</div>
+          <div class="cost-note" id="vidCostNote">precio × duración</div>
+        </div>
+        <div class="cost-value" id="vidCostValue">~$0.40</div>
+      </div>
+    </div>
+
+    <!-- Audio -->
+    <div class="card">
+      <div class="card-title">Audio <span style="font-size:11px;color:#555;font-weight:400;">(opcional)</span></div>
+      <div id="audioNativeSection" style="display:none;">
+        <div style="font-size:12px;background:#1a2e1a;border:1px solid #22c55e;border-radius:8px;padding:8px 12px;color:#4ade80;margin-bottom:12px;">
+          🔊 Este modelo genera audio nativo.
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:14px;">
+          <input type="checkbox" id="nativeAudioToggle" onchange="updateGenBtn()" style="width:16px;height:16px;cursor:pointer;">
+          <span style="font-size:13px;color:#aaa;">Activar audio nativo del modelo</span>
+        </label>
+        <hr style="border:none;border-top:1px solid #2a2a30;margin-bottom:14px;">
+      </div>
+      <div class="field">
+        <div class="field-label">MMAudio · fal.ai <span style="color:#555;font-weight:400;">($0.001/s)</span></div>
+        <div class="row" style="margin-bottom:10px;">
+          <div>
+            <input type="password" id="falKey" placeholder="fal.ai API key..." autocomplete="off">
+            <div class="hint"><a href="https://fal.ai/dashboard/keys" target="_blank">fal.ai/dashboard/keys</a></div>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="audioToggle" onchange="toggleAudio()" style="width:16px;height:16px;cursor:pointer;">
+              <span style="font-size:13px;color:#aaa;">Agregar audio con MMAudio</span>
+            </label>
+          </div>
+        </div>
+        <div id="audioFields" style="display:none;">
+          <div class="field">
+            <div class="field-label">Describe el sonido</div>
+            <div class="enhance-row">
+              <textarea id="audioPrompt" placeholder="Ej: pasos suaves, viento entre árboles…" rows="2"></textarea>
+              <button class="enhance-btn" id="enhanceAudioBtn" onclick="enhanceAudioPrompt()">✨ Mejorar<br>con IA</button>
+            </div>
+            <div class="hint" id="enhanceAudioStatus"></div>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <div class="field-label">Negative audio (opcional)</div>
+            <input type="text" id="audioNeg" placeholder="música, voces, ruido…">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="gen-btn vid" id="genVidBtn" onclick="generateVideo()">Generar video</button>
+
+    <div style="margin-top:16px;">
+      <div class="status-box" id="vidStatusBox">Listo para generar.</div>
+      <div class="progress-wrap" id="vidProgressWrap">
+        <div class="progress-bar vid" id="vidProgressBar"></div>
+      </div>
+    </div>
+
+    <div id="vidResultSection" style="display:none;">
+      <div class="result-card">
+        <div class="result-label" id="vidResultLabel">✓ Video generado</div>
+        <video id="videoEl" controls autoplay loop></video>
+        <br>
+        <a class="dl-btn" id="vidDlBtn" download="video.mp4">⬇ Descargar video</a>
+      </div>
+    </div>
+  </div><!-- end tab-vid -->
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let imgFile = null;
+let imgDataUrl = null;
+let selectedImgModel = "black-forest-labs/flux.2-pro";
+let selectedVidModel = "google/veo-3.1-fast";
+let generatedImgUrl = null; // URL of last generated image
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelector(`.tab.${tab}-tab`).classList.add("active");
+  document.getElementById(`tab-${tab}`).classList.add("active");
+}
+
+// ─── IMAGE MODEL SELECTION ────────────────────────────────────────────────────
+function selectImgModel(el) {
+  document.querySelectorAll("#imgModelPills .pill").forEach(p => p.classList.remove("active-img"));
+  el.classList.add("active-img");
+  selectedImgModel = el.dataset.imgModel;
+}
+
+// ─── VIDEO MODEL SELECTION ────────────────────────────────────────────────────
+function selectVidModel(el) {
+  document.querySelectorAll("#vidModelPills .pill").forEach(p => p.classList.remove("active-vid"));
+  el.classList.add("active-vid");
+  selectedVidModel = el.dataset.vidModel;
+  const hasNativeAudio = el.dataset.nativeAudio === "true";
+
+  const durationsAttr = el.dataset.durations || "5,10";
+  const durations = durationsAttr.split(",").map(d => d.trim());
+  const durationSel = document.getElementById("duration");
+  const currentVal = durationSel.value;
+  durationSel.innerHTML = durations.map(d => `<option value="${d}">${d} segundos</option>`).join("");
+  if (durations.includes(currentVal)) durationSel.value = currentVal;
+  else durationSel.value = durations[0];
+
+  document.getElementById("audioNativeSection").style.display = hasNativeAudio ? "block" : "none";
+  if (!hasNativeAudio) document.getElementById("nativeAudioToggle").checked = false;
+
+  updateVidCost();
+  updateGenBtn();
+}
+
+function updateVidCost() {
+  const activePill = document.querySelector("#vidModelPills .pill.active-vid");
+  if (!activePill) return;
+  const price = parseFloat(activePill.dataset.price);
+  const duration = parseInt(document.getElementById("duration").value);
+  const cost = price * duration;
+  document.getElementById("vidCostNote").textContent = `$${activePill.dataset.price}/s × ${duration}s`;
+  const costEl = document.getElementById("vidCostValue");
+  costEl.textContent = `~$${cost.toFixed(2)}`;
+  costEl.className = "cost-value";
+  if (cost < 0.5) costEl.classList.add("cheap");
+  else if (cost < 2.0) costEl.classList.add("mid");
+  else costEl.classList.add("expensive");
+}
+
+// ─── IMAGE HANDLING ───────────────────────────────────────────────────────────
+function dv(e, type) {
+  e.preventDefault();
+  const d = document.getElementById("imgDrop");
+  if (type === "over") d.classList.add("over");
+  else if (type === "leave") d.classList.remove("over");
+  else { d.classList.remove("over"); if (e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]); }
+}
+
+function loadImg(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  imgFile = file;
+  generatedImgUrl = null;
+  document.getElementById("fromGenBadge").style.display = "none";
+  const reader = new FileReader();
+  reader.onload = e => {
+    imgDataUrl = e.target.result;
+    document.getElementById("imgThumb").src = imgDataUrl;
+    document.getElementById("imgDrop").style.display = "none";
+    document.getElementById("imgPreview").style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImg() {
+  imgFile = null; imgDataUrl = null; generatedImgUrl = null;
+  document.getElementById("imgDrop").style.display = "block";
+  document.getElementById("imgPreview").style.display = "none";
+  document.getElementById("imgInput").value = "";
+  document.getElementById("fromGenBadge").style.display = "none";
+}
+
+// Usar imagen generada para video
+function useImageForVideo() {
+  if (!generatedImgUrl) return;
+  // Convert generated image URL to blob for use
+  fetch(generatedImgUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      imgFile = new File([blob], "generated.png", { type: "image/png" });
+      const reader = new FileReader();
+      reader.onload = e => {
+        imgDataUrl = e.target.result;
+        document.getElementById("imgThumb").src = imgDataUrl;
+        document.getElementById("imgDrop").style.display = "none";
+        document.getElementById("imgPreview").style.display = "block";
+        document.getElementById("fromGenBadge").style.display = "block";
+        switchTab("vid");
+      };
+      reader.readAsDataURL(blob);
+    })
+    .catch(() => {
+      // If CORS issue, use URL directly
+      imgDataUrl = generatedImgUrl;
+      imgFile = null;
+      document.getElementById("imgThumb").src = generatedImgUrl;
+      document.getElementById("imgDrop").style.display = "none";
+      document.getElementById("imgPreview").style.display = "block";
+      document.getElementById("fromGenBadge").style.display = "block";
+      switchTab("vid");
+    });
+}
+
+// ─── STATUS HELPERS ───────────────────────────────────────────────────────────
+function setImgStatus(msg, type = "") {
+  const b = document.getElementById("imgStatusBox");
+  b.textContent = msg;
+  b.className = "status-box" + (type ? " " + type : "");
+}
+function setImgProgress(pct) {
+  document.getElementById("imgProgressWrap").style.display = "block";
+  document.getElementById("imgProgressBar").style.width = pct + "%";
+}
+function setVidStatus(msg, type = "") {
+  const b = document.getElementById("vidStatusBox");
+  b.textContent = msg;
+  b.className = "status-box" + (type ? " " + type : "");
+}
+function setVidProgress(pct) {
+  document.getElementById("vidProgressWrap").style.display = "block";
+  document.getElementById("vidProgressBar").style.width = pct + "%";
+}
+
+// ─── PROMPT ENHANCEMENT ──────────────────────────────────────────────────────
+async function callClaude(orKey, systemPrompt, userText) {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "anthropic/claude-sonnet-4-5",
+      messages: [{ role: "user", content: systemPrompt + "\n\nOriginal: " + userText }]
+    })
+  });
+  const data = await res.json();
+  return data.choices[0].message.content.trim();
+}
+
+async function enhanceImgPrompt() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const prompt = document.getElementById("imgPrompt").value.trim();
+  if (!orKey) { document.getElementById("enhanceImgStatus").textContent = "⚠ Necesitas tu OR key."; return; }
+  if (!prompt) { document.getElementById("enhanceImgStatus").textContent = "⚠ Escribe un prompt primero."; return; }
+  const btn = document.getElementById("enhanceImgBtn");
+  btn.disabled = true; btn.textContent = "…";
+  document.getElementById("enhanceImgStatus").innerHTML = '<span class="spinner"></span>Mejorando…';
+  try {
+    const improved = await callClaude(orKey,
+      `You are an expert at writing prompts for AI image generation models (Flux, DALL-E, Stable Diffusion).
+Rewrite this basic prompt into a detailed, high-quality image prompt.
+Add style, lighting, composition, mood, camera details, and artistic cues.
+Keep it under 200 words. Return ONLY the improved prompt, no explanation.`, prompt);
+    document.getElementById("imgPrompt").value = improved;
+    document.getElementById("enhanceImgStatus").textContent = "✓ Prompt mejorado.";
+  } catch(e) { document.getElementById("enhanceImgStatus").textContent = "Error: " + e.message; }
+  btn.disabled = false; btn.innerHTML = "✨ Mejorar<br>con IA";
+}
+
+async function enhanceVidPrompt() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const prompt = document.getElementById("vidPrompt").value.trim();
+  if (!orKey) { document.getElementById("enhanceVidStatus").textContent = "⚠ Necesitas tu OR key."; return; }
+  if (!prompt) { document.getElementById("enhanceVidStatus").textContent = "⚠ Escribe un prompt primero."; return; }
+  const btn = document.getElementById("enhanceVidBtn");
+  btn.disabled = true; btn.textContent = "…";
+  document.getElementById("enhanceVidStatus").innerHTML = '<span class="spinner"></span>Mejorando…';
+  try {
+    const improved = await callClaude(orKey,
+      `You are an expert at writing prompts for AI video generation models.
+Take this basic prompt and rewrite it as a detailed, cinematic video prompt.
+Add camera movement, lighting, atmosphere, motion details, and style cues.
+Keep it under 200 words. Return ONLY the improved prompt, no explanation.`, prompt);
+    document.getElementById("vidPrompt").value = improved;
+    document.getElementById("enhanceVidStatus").textContent = "✓ Prompt mejorado con Claude.";
+  } catch(e) { document.getElementById("enhanceVidStatus").textContent = "Error: " + e.message; }
+  btn.disabled = false; btn.innerHTML = "✨ Mejorar<br>con IA";
+}
+
+async function enhanceAudioPrompt() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const prompt = document.getElementById("audioPrompt").value.trim();
+  if (!orKey || !prompt) return;
+  const btn = document.getElementById("enhanceAudioBtn");
+  btn.disabled = true; btn.textContent = "…";
+  document.getElementById("enhanceAudioStatus").innerHTML = '<span class="spinner"></span>Mejorando…';
+  try {
+    const improved = await callClaude(orKey,
+      `Expert audio prompt writer for MMAudio. Rewrite this into detailed sound design: textures, rhythm, mood, ambient details. Under 100 words. Return ONLY the prompt.`, prompt);
+    document.getElementById("audioPrompt").value = improved;
+    document.getElementById("enhanceAudioStatus").textContent = "✓ Mejorado.";
+  } catch(e) { document.getElementById("enhanceAudioStatus").textContent = "Error: " + e.message; }
+  btn.disabled = false; btn.innerHTML = "✨ Mejorar<br>con IA";
+}
+
+function toggleAudio() {
+  document.getElementById("audioFields").style.display =
+    document.getElementById("audioToggle").checked ? "block" : "none";
+  updateGenBtn();
+}
+
+function updateGenBtn() {
+  const btn = document.getElementById("genVidBtn");
+  const hasNativeAudio = document.querySelector("#vidModelPills .pill.active-vid")?.dataset.nativeAudio === "true";
+  const nativeOn = document.getElementById("nativeAudioToggle").checked;
+  const mmOn = document.getElementById("audioToggle").checked;
+  if (hasNativeAudio && nativeOn) btn.textContent = "Generar video + audio nativo";
+  else if (mmOn) btn.textContent = "Generar video + audio (MMAudio)";
+  else btn.textContent = "Generar video";
+}
+
+// ─── CHARACTER COMPOSITION ───────────────────────────────────────────────────
+let charFiles = [null, null, null, null];
+let charDataUrls = [null, null, null, null];
+
+function toggleComp() {
+  const s = document.getElementById("compSection");
+  const c = document.getElementById("compChevron");
+  const isHidden = s.style.display === "none";
+  s.style.display = isHidden ? "block" : "none";
+  c.style.transform = isHidden ? "rotate(180deg)" : "";
+}
+
+function loadChar(idx, file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  charFiles[idx] = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    charDataUrls[idx] = e.target.result;
+    document.getElementById(`charThumb${idx}`).src = e.target.result;
+    document.getElementById(`charSlot${idx}`).style.display = "none";
+    const pw = document.getElementById(`charPreview${idx}`);
+    pw.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearChar(idx) {
+  charFiles[idx] = null; charDataUrls[idx] = null;
+  document.getElementById(`charSlot${idx}`).style.display = "flex";
+  document.getElementById(`charPreview${idx}`).style.display = "none";
+  document.getElementById(`charInput${idx}`).value = "";
+}
+
+async function composeScene() {
+  const orKey = document.getElementById("orKey").value.trim();
+  if (!orKey) { document.getElementById("compStatus").textContent = "⚠ Necesitas tu OR key."; return; }
+  const loaded = charDataUrls.map((u, i) => ({ url: u, idx: i })).filter(x => x.url);
+  if (loaded.length === 0) { document.getElementById("compStatus").textContent = "⚠ Sube al menos una imagen de personaje."; return; }
+  const sceneDesc = document.getElementById("sceneDesc").value.trim();
+  const btn = document.getElementById("composeBtn");
+  btn.disabled = true;
+
+  try {
+    // Step 1: analyze each character with vision model
+    const descriptions = [];
+    for (let i = 0; i < loaded.length; i++) {
+      document.getElementById("compStatus").innerHTML = `<span class="spinner"></span>Analizando personaje ${i + 1} de ${loaded.length}…`;
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages: [{ role: "user", content: [
+            { type: "image_url", image_url: { url: loaded[i].url } },
+            { type: "text", text: "Describe this character's appearance for an AI image generation prompt. Cover: gender, age range, ethnicity, hair (color/length/style), face, clothing (style/colors), accessories, art style (realistic/anime/etc). Be specific. Max 70 words. Return ONLY the description, no intro or explanation." }
+          ]}]
+        })
+      });
+      if (!res.ok) throw new Error("Vision error: " + await res.text());
+      const d = await res.json();
+      descriptions.push(d.choices[0].message.content.trim());
+    }
+
+    // Step 2: build composition prompt
+    document.getElementById("compStatus").innerHTML = '<span class="spinner"></span>Construyendo prompt de composición…';
+    let finalPrompt;
+    if (descriptions.length === 1) {
+      finalPrompt = descriptions[0] + (sceneDesc ? ", " + sceneDesc : ", cinematic lighting, high detail");
+    } else {
+      const charText = descriptions.map((d, i) => `Character ${i + 1}: ${d}`).join("\n");
+      const buildRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "anthropic/claude-sonnet-4-5",
+          messages: [{ role: "user", content:
+            `Write a detailed image generation prompt placing these ${descriptions.length} characters together in a single scene.
+
+${charText}
+
+Scene: ${sceneDesc || "dramatic cinematic scene, dynamic composition"}
+
+Write ONE cohesive prompt that: describes all characters' positions/poses in the frame, their interactions, the environment, atmosphere, lighting, and visual style. Make it vivid and specific for Flux/Stable Diffusion. Max 220 words. Return ONLY the prompt text.`
+          }]
+        })
+      });
+      if (!buildRes.ok) throw new Error("Build error: " + await buildRes.text());
+      const bd = await buildRes.json();
+      finalPrompt = bd.choices[0].message.content.trim();
+    }
+
+    // Fill prompt and scroll
+    document.getElementById("imgPrompt").value = finalPrompt;
+    document.getElementById("compStatus").innerHTML = `✓ Prompt listo con ${loaded.length} personaje${loaded.length > 1 ? "s" : ""}. Revísalo arriba y genera.`;
+    document.getElementById("imgPrompt").scrollIntoView({ behavior: "smooth", block: "center" });
+
+  } catch(e) {
+    document.getElementById("compStatus").textContent = "Error: " + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ─── COMPOSE SCENE DIRECT (images → Gemini → generated scene) ───────────────
+async function composeSceneDirect() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const loaded = charDataUrls.map((u, i) => ({ url: u, idx: i })).filter(x => x.url);
+  const sceneDesc = document.getElementById("sceneDesc").value.trim();
+  const status = document.getElementById("compStatus");
+
+  if (!orKey) { status.textContent = "⚠ Ingresa tu OpenRouter API key."; return; }
+  if (loaded.length === 0) { status.textContent = "⚠ Sube al menos una foto de personaje."; return; }
+
+  // Model options that accept image inputs for composition
+  // Ordered by best compatibility with real face photos
+  const COMPOSE_MODELS = [
+    { id: "openai/gpt-5-image",              label: "GPT-5 Image",           modalities: ["image","text"] },
+    { id: "openai/gpt-5-image-mini",         label: "GPT-5 Image Mini",      modalities: ["image","text"] },
+    { id: "google/gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash", modalities: ["image","text"] },
+    { id: "google/gemini-2.5-flash-image",   label: "Gemini 2.5 Flash",      modalities: ["image","text"] },
+    { id: "black-forest-labs/flux.2-pro",    label: "Flux.2 Pro",            modalities: ["image"] },
+  ];
+
+  // Pick model from selector if it exists, else default to GPT-5 Image
+  const sel = document.getElementById("composeModelSel");
+  const chosenId = sel ? sel.value : COMPOSE_MODELS[0].id;
+  const chosenModel = COMPOSE_MODELS.find(m => m.id === chosenId) || COMPOSE_MODELS[0];
+
+  const btn = document.getElementById("composeDirectBtn");
+  btn.disabled = true;
+  status.innerHTML = `<span class="spinner"></span>Generando escena con ${chosenModel.label}…`;
+
+  try {
+    const content = [];
+    loaded.forEach((c, i) => {
+      content.push({ type: "image_url", image_url: { url: c.url } });
+      content.push({ type: "text", text: `Personaje ${i + 1}` });
+    });
+    const sceneInstruction = sceneDesc
+      ? `These are reference photos of ${loaded.length} character(s). Generate a scene image featuring EXACTLY these character(s) faithfully reproducing their appearance, clothing and facial features. Scene: ${sceneDesc}. High quality, cinematic lighting.`
+      : `These are reference photos of ${loaded.length} character(s). Generate a cinematic scene featuring EXACTLY these character(s), faithfully reproducing their appearance, clothing and facial features. Dramatic lighting, high quality.`;
+    content.push({ type: "text", text: sceneInstruction });
+
+    const body = {
+      model: chosenModel.id,
+      messages: [{ role: "user", content }],
+      modalities: chosenModel.modalities
+    };
+
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    console.log("Direct compose result:", data);
+
+    // Check for safety block
+    const finishReason = data.choices?.[0]?.native_finish_reason || data.choices?.[0]?.finish_reason || "";
+    if (finishReason === "IMAGE_SAFETY" || finishReason === "SAFETY") {
+      throw new Error(`Bloqueado por filtro de seguridad (${chosenModel.label}). Intenta con otro modelo en el selector.`);
+    }
+
+    const msg = data.choices?.[0]?.message;
+    let url = msg?.images?.[0]?.image_url?.url || null;
+    if (!url && typeof msg?.content === "string" && msg.content.startsWith("data:")) url = msg.content;
+    if (!url) {
+      // Try content array
+      const contentArr = Array.isArray(msg?.content) ? msg.content : [];
+      const imgPart = contentArr.find(p => p.type === "image_url");
+      if (imgPart) url = imgPart.image_url?.url;
+    }
+    if (!url) throw new Error(`${chosenModel.label} no devolvió imagen. Revisa la consola.`);
+
+    generatedImgUrl = url;
+    document.getElementById("generatedImg").src = url;
+    document.getElementById("imgDlBtn").href = url;
+    document.getElementById("imgResultSection").style.display = "block";
+    status.innerHTML = `✓ Escena generada con ${loaded.length} personaje(s) usando ${chosenModel.label}.`;
+    document.getElementById("generatedImg").scrollIntoView({ behavior: "smooth", block: "center" });
+
+  } catch(e) {
+    status.textContent = "Error: " + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ─── IMAGE GENERATION ────────────────────────────────────────────────────────
+async function generateImage() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const prompt = document.getElementById("imgPrompt").value.trim();
+  const size = document.getElementById("imgSize").value;
+  const neg = document.getElementById("imgNeg").value.trim();
+
+  if (!orKey) { setImgStatus("⚠ Ingresa tu OpenRouter API key.", "error"); return; }
+  if (!prompt) { setImgStatus("⚠ Escribe un prompt.", "error"); return; }
+
+  const activePill = document.querySelector("#imgModelPills .pill.active-img");
+  const modalitiesAttr = activePill ? activePill.dataset.imgModalities : "image";
+  const modalities = modalitiesAttr.split(",").map(m => m.trim());
+
+  const btn = document.getElementById("genImgBtn");
+  btn.disabled = true;
+  document.getElementById("imgResultSection").style.display = "none";
+  setImgStatus("Generando imagen…", "active");
+  setImgProgress(20);
+
+  try {
+    // OR image generation uses /chat/completions with modalities param
+    const userContent = neg ? `${prompt}\n\nNegative: ${neg}` : prompt;
+    const body = {
+      model: selectedImgModel,
+      messages: [{ role: "user", content: userContent }],
+      modalities
+    };
+
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error("Error: " + await res.text());
+    const data = await res.json();
+    console.log("Image result:", data);
+
+    const msg = data.choices?.[0]?.message;
+    // Image is in msg.images[] or as base64 in msg.content
+    let url = null;
+    if (msg?.images?.[0]?.image_url?.url) {
+      url = msg.images[0].image_url.url;
+    } else if (typeof msg?.content === "string" && msg.content.startsWith("data:")) {
+      url = msg.content;
+    }
+    if (!url) throw new Error("No se obtuvo imagen. Revisa la consola para más detalles.");
+
+    generatedImgUrl = url;
+    document.getElementById("generatedImg").src = url;
+    document.getElementById("imgDlBtn").href = url;
+    document.getElementById("imgResultSection").style.display = "block";
+    setImgProgress(100);
+    setImgStatus("✓ Imagen generada.", "done");
+    document.getElementById("generatedImg").scrollIntoView({ behavior: "smooth", block: "center" });
+
+  } catch(e) {
+    setImgStatus("Error: " + e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+// ─── IMGBB UPLOAD ─────────────────────────────────────────────────────────────
+async function uploadToImgbb(apiKey, file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const formData = new FormData();
+  formData.append("image", base64);
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: "POST", body: formData });
+  if (!res.ok) throw new Error("imgbb upload falló: " + await res.text());
+  const data = await res.json();
+  if (!data.success) throw new Error("imgbb error: " + JSON.stringify(data));
+  return data.data.url;
+}
+
+async function uploadImgbbFromUrl(apiKey, url) {
+  // Upload from URL directly to imgbb
+  const formData = new FormData();
+  formData.append("image", url);
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: "POST", body: formData });
+  if (!res.ok) throw new Error("imgbb upload falló: " + await res.text());
+  const data = await res.json();
+  if (!data.success) throw new Error("imgbb error: " + JSON.stringify(data));
+  return data.data.url;
+}
+
+// ─── FAL STORAGE UPLOAD ───────────────────────────────────────────────────────
+async function uploadVideoToFal(falKey, videoUrl, orKey) {
+  const headers = {};
+  if (videoUrl.includes("openrouter.ai")) headers["Authorization"] = "Bearer " + orKey;
+  setVidStatus("Descargando video para MMAudio…", "active");
+  const videoRes = await fetch(videoUrl, { headers });
+  if (!videoRes.ok) throw new Error("No se pudo descargar el video.");
+  const videoBlob = await videoRes.blob();
+  setVidStatus("Subiendo video a fal.ai…", "active");
+  const uploadRes = await fetch("https://rest.alpha.fal.ai/storage/upload/initiate", {
+    method: "POST",
+    headers: { "Authorization": "Key " + falKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ content_type: "video/mp4", file_name: "video.mp4" })
+  });
+  if (!uploadRes.ok) {
+    const formData = new FormData();
+    formData.append("file", videoBlob, "video.mp4");
+    const directRes = await fetch("https://fal.run/files/upload", {
+      method: "POST", headers: { "Authorization": "Key " + falKey }, body: formData
+    });
+    if (!directRes.ok) throw new Error("fal storage upload falló: " + await directRes.text());
+    const d = await directRes.json();
+    return d.url || d.file_url;
+  }
+  const initData = await uploadRes.json();
+  console.log("[upload] initiate response:", initData);
+  const { upload_url, file_url } = initData;
+  console.log("[upload] PUT to:", upload_url, "| blob size:", videoBlob.size, "bytes");
+  const putRes = await fetch(upload_url, { method: "PUT", body: videoBlob, headers: { "Content-Type": "video/mp4" } });
+  console.log("[upload] PUT status:", putRes.status, putRes.statusText);
+  if (!putRes.ok) {
+    const putErr = await putRes.text().catch(() => "(no body)");
+    console.error("[upload] PUT error body:", putErr);
+    throw new Error(`fal storage PUT falló (${putRes.status}): ${putErr}`);
+  }
+  console.log("[upload] PUT OK, file_url:", file_url);
+  return file_url;
+}
+
+// ─── MMAUDIO ─────────────────────────────────────────────────────────────────
+async function generateAudio(falKey, videoUrl, audioPrompt, audioNeg) {
+  const body = { video_url: videoUrl, prompt: audioPrompt };
+  if (audioNeg) body.negative_prompt = audioNeg;
+  console.log("[mmaudio] submit payload:", body);
+  const submitRes = await fetch("https://queue.fal.run/fal-ai/mmaudio-v2", {
+    method: "POST",
+    headers: { "Authorization": "Key " + falKey, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!submitRes.ok) {
+    const errText = await submitRes.text();
+    console.error("[mmaudio] submit error:", submitRes.status, errText);
+    throw new Error("MMAudio error: " + errText);
+  }
+  const job = await submitRes.json();
+  console.log("[mmaudio] job:", job);
+  let elapsed = 0;
+  while (true) {
+    await new Promise(r => setTimeout(r, 3000));
+    elapsed += 3;
+    setVidStatus(`Generando audio… (~${elapsed}s)`, "active");
+    setVidProgress(70 + Math.min(elapsed, 25));
+    const res = await fetch(job.status_url, { headers: { "Authorization": "Key " + falKey } });
+    const data = await res.json();
+    console.log("[mmaudio] poll status:", data.status, data);
+    if (data.status === "COMPLETED") {
+      const resp = await (await fetch(data.response_url, { headers: { "Authorization": "Key " + falKey } })).json();
+      console.log("[mmaudio] completed response:", resp);
+      const url = resp?.video?.url || resp?.audio?.url || resp?.url;
+      if (!url) throw new Error("MMAudio: no URL en respuesta.");
+      return url;
+    }
+    if (data.status === "FAILED") {
+      console.error("[mmaudio] FAILED response:", data);
+      throw new Error("MMAudio falló: " + JSON.stringify(data));
+    }
+  }
+}
+
+// ─── VIDEO GENERATION ─────────────────────────────────────────────────────────
+async function generateVideo() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const imgbbKey = document.getElementById("imgbbKey").value.trim();
+  const prompt = document.getElementById("vidPrompt").value.trim();
+  const duration = document.getElementById("duration").value;
+  const aspect = document.getElementById("aspect").value;
+
+  if (!orKey) { setVidStatus("⚠ Ingresa tu OpenRouter API key.", "error"); return; }
+  if (!imgFile && !imgDataUrl) { setVidStatus("⚠ Sube una imagen o genera una primero.", "error"); return; }
+  if (!prompt) { setVidStatus("⚠ Escribe un prompt.", "error"); return; }
+
+  const btn = document.getElementById("genVidBtn");
+  btn.disabled = true;
+  document.getElementById("vidResultSection").style.display = "none";
+  setVidProgress(0);
+
+  try {
+    // Get public image URL
+    let imageUrl;
+    if (imgbbKey && imgFile) {
+      setVidStatus("Subiendo imagen a imgbb…", "active");
+      setVidProgress(3);
+      imageUrl = await uploadToImgbb(imgbbKey, imgFile);
+      setVidStatus("Imagen subida ✓ · enviando a OpenRouter…", "active");
+    } else if (imgbbKey && imgDataUrl && !imgFile) {
+      // Generated image URL — pass directly to imgbb
+      setVidStatus("Subiendo imagen generada a imgbb…", "active");
+      setVidProgress(3);
+      imageUrl = await uploadImgbbFromUrl(imgbbKey, imgDataUrl);
+      setVidStatus("Imagen subida ✓ · enviando a OpenRouter…", "active");
+    } else {
+      imageUrl = imgDataUrl;
+    }
+
+    const nativeAudio = document.getElementById("nativeAudioToggle").checked;
+    const body = {
+      model: selectedVidModel,
+      prompt,
+      duration: parseInt(duration),
+      aspect_ratio: aspect,
+      generate_audio: nativeAudio,
+      frame_images: [{ type: "image_url", image_url: { url: imageUrl }, frame_type: "first_frame" }]
+    };
+
+    console.log("[video] submit payload:", body);
+    setVidProgress(5);
+    const submitRes = await fetch("https://openrouter.ai/api/v1/videos", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!submitRes.ok) {
+      const errText = await submitRes.text();
+      console.error("[video] submit error:", submitRes.status, errText);
+      throw new Error("Submit error: " + errText);
+    }
+    const job = await submitRes.json();
+    console.log("[video] job response:", job);
+
+    const pollingUrl = job.polling_url
+      ? (job.polling_url.startsWith("http") ? job.polling_url : "https://openrouter.ai" + job.polling_url)
+      : `https://openrouter.ai/api/v1/videos/${job.id}`;
+    console.log("[video] polling URL:", pollingUrl);
+
+    const stages = ["En cola", "Inicializando", "Generando frames", "Renderizando", "Finalizando"];
+    let stageIdx = 0, elapsed = 0, dots = 0;
+    let videoResult;
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 5000));
+      elapsed += 5;
+      stageIdx = Math.min(Math.floor(elapsed / 20), stages.length - 1);
+      setVidProgress(Math.min(10 + elapsed * 1.2, 88));
+      dots = (dots + 1) % 4;
+      setVidStatus(`${stages[stageIdx]}${"·".repeat(dots + 1)} (~${elapsed}s)`, "active");
+      const res = await fetch(pollingUrl, { headers: { "Authorization": "Bearer " + orKey } });
+      if (!res.ok) {
+        const pollErr = await res.text();
+        console.error("[video] poll error:", res.status, pollErr);
+        throw new Error("Polling error: " + pollErr);
+      }
+      const data = await res.json();
+      console.log("[video] poll status:", data.status, data);
+      if (data.status === "completed") {
+        const publicUrl = data.unsigned_urls?.[0] || null;
+        const authUrl = `https://openrouter.ai/api/v1/videos/${data.id}/content?index=0`;
+        videoResult = { publicUrl, authUrl, displayUrl: publicUrl || authUrl };
+        console.log("[video] completed:", videoResult);
+        break;
+      }
+      if (["failed", "cancelled", "expired"].includes(data.status)) {
+        console.error("[video] failed response:", data);
+        throw new Error("Video falló (" + data.status + "): " + (data.error || ""));
+      }
+    }
+
+    // MMAudio
+    const audioOn = document.getElementById("audioToggle").checked;
+    const audioPromptVal = document.getElementById("audioPrompt").value.trim();
+    const falKey = document.getElementById("falKey").value.trim();
+    const hasNativeAudio = document.querySelector("#vidModelPills .pill.active-vid")?.dataset.nativeAudio === "true";
+    const nativeOn = document.getElementById("nativeAudioToggle").checked;
+
+    let finalUrl = videoResult.displayUrl;
+
+    if (audioOn && audioPromptVal && falKey) {
+      try {
+        setVidProgress(60);
+        const falVideoUrl = await uploadVideoToFal(falKey, videoResult.displayUrl, orKey);
+        setVidStatus("Video subido · generando audio…", "active");
+        setVidProgress(70);
+        finalUrl = await generateAudio(falKey, falVideoUrl, audioPromptVal, document.getElementById("audioNeg").value.trim());
+        document.getElementById("vidResultLabel").textContent = "✓ Video + audio";
+      } catch(audioErr) {
+        document.getElementById("vidResultLabel").textContent = "✓ Video (audio falló: " + audioErr.message + ")";
+      }
+    } else {
+      document.getElementById("vidResultLabel").textContent =
+        (hasNativeAudio && nativeOn) ? "✓ Video + audio nativo" : "✓ Video generado";
+    }
+
+    setVidProgress(100);
+    setVidStatus("✓ Listo.", "done");
+
+    if (finalUrl.includes("openrouter.ai/api/") && !finalUrl.includes("unsigned")) {
+      try {
+        const resp = await fetch(finalUrl, { headers: { "Authorization": "Bearer " + orKey } });
+        const blob = await resp.blob();
+        finalUrl = URL.createObjectURL(blob);
+      } catch(e) {}
+    }
+
+    const videoEl = document.getElementById("videoEl");
+    videoEl.src = finalUrl;
+    const dlBtn = document.getElementById("vidDlBtn");
+    dlBtn.href = finalUrl;
+    dlBtn.download = buildFilename(prompt);
+    document.getElementById("vidResultSection").style.display = "block";
+    videoEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  } catch(e) {
+    setVidStatus("Error: " + e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+// ─── FILENAME ────────────────────────────────────────────────────────────────
+function buildFilename(prompt) {
+  const pill = document.querySelector("#vidModelPills .pill.active-vid");
+  const modelRaw = pill ? pill.querySelector(".pill-name").textContent : "video";
+  const model = modelRaw.replace(/[^\w\s.-]/g, "").trim().toLowerCase().replace(/\s+/g, "-");
+  const now = new Date();
+  const date = now.getFullYear().toString() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
+  const slug = prompt.toLowerCase().replace(/[^a-z0-9\s]/g,"").trim().split(/\s+/).slice(0,5).join("-");
+  return `${model}_${date}_${slug}.mp4`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const defaultVidPill = document.querySelector("#vidModelPills .pill.active-vid");
+  if (defaultVidPill) selectVidModel(defaultVidPill);
+});
+updateVidCost();
+</script>
+</body>
+</html>
