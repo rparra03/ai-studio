@@ -115,6 +115,7 @@
   .pill.active-vid { border-color: #3b82f6; color: #93c5fd; background: #0f1e38; }
   .pill.active-vid .pill-price { color: #3b82f688; }
   .pill.active-cam { background: #0f2a1a; border-color: #22c55e; color: #22c55e; }
+  .pill.active-style { background: #1a1a0f; border-color: #f59e0b; color: #f59e0b; }
 
   /* Cost badge */
   .cost-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 10px 14px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px; }
@@ -176,6 +177,30 @@
           <button class="enhance-btn" id="enhanceImgBtn" onclick="enhanceImgPrompt()">✨ Mejorar<br>con IA</button>
         </div>
         <div class="hint" id="enhanceImgStatus"></div>
+      </div>
+      <div class="field-label" style="margin-top:10px;">Estilo visual</div>
+      <div class="model-pills" id="imgStylePills" style="flex-wrap:wrap;">
+        <div class="pill active-style" data-pos="" data-neg="" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">✨ Auto</span>
+        </div>
+        <div class="pill" data-pos="cinematic film still, anamorphic lens, shallow depth of field, golden hour lighting, 35mm film grain, professional cinematography" data-neg="cartoon, anime, 3d render, illustration, low quality" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎬 Cinematic</span>
+        </div>
+        <div class="pill" data-pos="anime style, studio ghibli, detailed illustration, vibrant colors, cel shading" data-neg="realistic, photo, 3d render, ugly" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎌 Anime</span>
+        </div>
+        <div class="pill" data-pos="photorealistic, 8k resolution, DSLR photo, natural lighting, hyperdetailed, sharp focus" data-neg="cartoon, painting, cgi, blur, low quality" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">📷 Realistic</span>
+        </div>
+        <div class="pill" data-pos="3d render, octane render, unreal engine 5, subsurface scattering, volumetric lighting, ultra detailed" data-neg="flat, 2d, sketch, painting, photo" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎮 3D Render</span>
+        </div>
+        <div class="pill" data-pos="oil painting, impressionist brushstrokes, artstation trending, painterly, textured canvas" data-neg="photo, realistic, 3d, low quality" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎨 Painterly</span>
+        </div>
+        <div class="pill" data-pos="dark fantasy, gothic atmosphere, dramatic shadows, epic composition, moody lighting" data-neg="bright, cheerful, cartoon, low quality" onclick="selectImgStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🌑 Dark Fantasy</span>
+        </div>
       </div>
     </div>
 
@@ -385,6 +410,30 @@
           <button class="enhance-btn" id="enhanceVidBtn" onclick="enhanceVidPrompt()">✨ Mejorar<br>con IA</button>
         </div>
         <div class="hint" id="enhanceVidStatus"></div>
+      </div>
+      <div class="field-label" style="margin-top:10px;">Estilo visual</div>
+      <div class="model-pills" id="vidStylePills" style="flex-wrap:wrap;">
+        <div class="pill active-style" data-pos="" data-neg="" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">✨ Auto</span>
+        </div>
+        <div class="pill" data-pos="cinematic film still, anamorphic lens, shallow depth of field, golden hour lighting, 35mm film grain, professional cinematography" data-neg="cartoon, anime, 3d render, illustration, low quality" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎬 Cinematic</span>
+        </div>
+        <div class="pill" data-pos="anime style, studio ghibli, detailed illustration, vibrant colors, cel shading, smooth animation" data-neg="realistic, photo, 3d render, ugly" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎌 Anime</span>
+        </div>
+        <div class="pill" data-pos="photorealistic, 8k resolution, DSLR photo, natural lighting, hyperdetailed, sharp focus" data-neg="cartoon, painting, cgi, blur, low quality" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">📷 Realistic</span>
+        </div>
+        <div class="pill" data-pos="3d render, octane render, unreal engine 5, subsurface scattering, volumetric lighting, ultra detailed" data-neg="flat, 2d, sketch, painting, photo" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎮 3D Render</span>
+        </div>
+        <div class="pill" data-pos="oil painting, impressionist brushstrokes, artstation trending, painterly, textured canvas" data-neg="photo, realistic, 3d, low quality" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🎨 Painterly</span>
+        </div>
+        <div class="pill" data-pos="dark fantasy, gothic atmosphere, dramatic shadows, epic composition, moody lighting, cinematic dark" data-neg="bright, cheerful, cartoon, low quality" onclick="selectVidStyle(this)" style="min-width:auto;">
+          <span class="pill-name">🌑 Dark Fantasy</span>
+        </div>
       </div>
     </div>
 
@@ -634,6 +683,31 @@ function getCamPhrase() {
 
 // Init cam preview on load
 document.addEventListener("DOMContentLoaded", () => updateCamPreview());
+
+// ─── STYLE PRESETS ────────────────────────────────────────────────────────────
+function selectImgStyle(el) {
+  document.querySelectorAll("#imgStylePills .pill").forEach(p => p.classList.remove("active-style"));
+  el.classList.add("active-style");
+  // Auto-fill negative prompt if empty
+  const neg = el.dataset.neg || "";
+  const negField = document.getElementById("imgNeg");
+  if (neg && negField && !negField.value.trim()) negField.value = neg;
+}
+
+function selectVidStyle(el) {
+  document.querySelectorAll("#vidStylePills .pill").forEach(p => p.classList.remove("active-style"));
+  el.classList.add("active-style");
+}
+
+function getImgStylePhrase() {
+  const active = document.querySelector("#imgStylePills .pill.active-style");
+  return active?.dataset.pos || "";
+}
+
+function getVidStylePhrase() {
+  const active = document.querySelector("#vidStylePills .pill.active-style");
+  return active?.dataset.pos || "";
+}
 
 function selectVidModel(el) {
   document.querySelectorAll("#vidModelPills .pill").forEach(p => p.classList.remove("active-vid"));
@@ -1030,7 +1104,9 @@ async function composeSceneDirect() {
 // ─── IMAGE GENERATION ────────────────────────────────────────────────────────
 async function generateImage() {
   const orKey = document.getElementById("orKey").value.trim();
-  const prompt = document.getElementById("imgPrompt").value.trim();
+  const basePrompt = document.getElementById("imgPrompt").value.trim();
+  const stylePhrase = getImgStylePhrase();
+  const prompt = stylePhrase ? `${basePrompt}, ${stylePhrase}` : basePrompt;
   const size = document.getElementById("imgSize").value;
   const neg = document.getElementById("imgNeg").value.trim();
 
@@ -1232,7 +1308,9 @@ async function generateVideo() {
     }
 
     const camPhrase = getCamPhrase();
-    const finalPrompt = camPhrase ? `${prompt}, ${camPhrase}` : prompt;
+    const stylePhrase = getVidStylePhrase();
+    const extras = [stylePhrase, camPhrase].filter(Boolean).join(", ");
+    const finalPrompt = extras ? `${prompt}, ${extras}` : prompt;
     console.log("[video] final prompt:", finalPrompt);
 
     const nativeAudio = document.getElementById("nativeAudioToggle").checked;
