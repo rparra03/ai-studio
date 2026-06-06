@@ -211,7 +211,11 @@
         <span id="compChevron" style="color:#555;font-size:13px;transition:transform 0.2s;">▼</span>
       </div>
       <div id="compSection" style="display:none;margin-top:14px;">
-        <div class="hint" style="margin-bottom:12px;">Sube hasta 4 fotos de personajes → la IA analiza cada uno → construye un prompt de composición → genera la escena.</div>
+        <div style="background:#111827;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#9ca3af;line-height:1.6;">
+          <div style="margin-bottom:6px;color:#e5e7eb;font-weight:600;font-size:12px;">¿Cómo funciona?</div>
+          <div style="margin-bottom:4px;">📝 <b style="color:#60a5fa;">Construir prompt</b> — Gemini analiza cada foto y describe al personaje en texto → Claude construye un prompt de composición detallado → el prompt <b>+ las fotos de referencia</b> se envían al modelo para generar la escena.</div>
+          <div>🎭 <b style="color:#a78bfa;">Generar escena directo</b> — Las fotos + tu descripción se envían directamente al modelo sin pipeline de IA. Más rápido, ideal cuando ya sabes lo que quieres.</div>
+        </div>
         <div class="char-grid">
           <!-- Slot 0 -->
           <div>
@@ -269,7 +273,11 @@
 
         <div class="field" style="margin-top:14px;">
           <div class="field-label">Describe la escena</div>
-          <textarea id="sceneDesc" placeholder="Ej: los 4 personajes enfrentados en una arena oscura lista para pelear, iluminación dramática, estilo anime cinematográfico…" rows="2"></textarea>
+          <div class="enhance-row">
+            <textarea id="sceneDesc" placeholder="Ej: los 4 personajes enfrentados en una arena oscura lista para pelear, iluminación dramática, estilo anime cinematográfico…" rows="2"></textarea>
+            <button class="enhance-btn" id="enhanceSceneBtn" onclick="enhanceScenePrompt()">✨ Mejorar<br>con IA</button>
+          </div>
+          <div class="hint" id="enhanceSceneStatus"></div>
         </div>
         <div class="field" style="margin-top:10px;">
           <div class="field-label">Modelo para "Generar escena directo"</div>
@@ -527,7 +535,7 @@
           <span class="pill-name">Wan 2.6</span>
           <span class="pill-price">$0.10/s</span>
         </div>
-        <div class="pill" data-vid-model="minimax/hailuo-2.3" data-price="0.07" data-durations="5,10" onclick="selectVidModel(this)">
+        <div class="pill" data-vid-model="minimax/hailuo-2.3" data-price="0.07" data-durations="6,10" onclick="selectVidModel(this)">
           <span class="pill-name">Hailuo 2.3</span>
           <span class="pill-price">$0.07/s</span>
         </div>
@@ -898,6 +906,26 @@ async function enhanceAudioPrompt() {
   btn.disabled = false; btn.innerHTML = "✨ Mejorar<br>con IA";
 }
 
+async function enhanceScenePrompt() {
+  const orKey = document.getElementById("orKey").value.trim();
+  const prompt = document.getElementById("sceneDesc").value.trim();
+  if (!orKey) { document.getElementById("enhanceSceneStatus").textContent = "⚠ Necesitas tu OR key."; return; }
+  if (!prompt) { document.getElementById("enhanceSceneStatus").textContent = "⚠ Describe la escena primero."; return; }
+  const btn = document.getElementById("enhanceSceneBtn");
+  btn.disabled = true; btn.textContent = "…";
+  document.getElementById("enhanceSceneStatus").innerHTML = '<span class="spinner"></span>Mejorando…';
+  try {
+    const improved = await callClaude(orKey,
+      `You are an expert at writing scene descriptions for AI character composition image generation.
+Rewrite this scene description to be more vivid and detailed for an AI image model.
+Include: setting details, lighting, atmosphere, mood, color palette, camera angle, and composition.
+Keep it under 120 words. Return ONLY the improved scene description, no explanation.`, prompt);
+    document.getElementById("sceneDesc").value = improved;
+    document.getElementById("enhanceSceneStatus").textContent = "✓ Escena mejorada.";
+  } catch(e) { document.getElementById("enhanceSceneStatus").textContent = "Error: " + e.message; }
+  btn.disabled = false; btn.innerHTML = "✨ Mejorar<br>con IA";
+}
+
 function toggleAudio() {
   document.getElementById("audioFields").style.display =
     document.getElementById("audioToggle").checked ? "block" : "none";
@@ -965,7 +993,7 @@ async function composeScene() {
         method: "POST",
         headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-001",
+          model: "google/gemini-3-flash-preview",
           messages: [{ role: "user", content: [
             { type: "image_url", image_url: { url: loaded[i].url } },
             { type: "text", text: "Describe this character's appearance for an AI image generation prompt. Cover: gender, age range, ethnicity, hair (color/length/style), face, clothing (style/colors), accessories, art style (realistic/anime/etc). Be specific. Max 70 words. Return ONLY the description, no intro or explanation." }
@@ -1005,10 +1033,57 @@ Write ONE cohesive prompt that: describes all characters' positions/poses in the
       finalPrompt = bd.choices[0].message.content.trim();
     }
 
-    // Fill prompt and scroll
+    // Fill prompt textarea
     document.getElementById("imgPrompt").value = finalPrompt;
-    document.getElementById("compStatus").innerHTML = `✓ Prompt listo con ${loaded.length} personaje${loaded.length > 1 ? "s" : ""}. Revísalo arriba y genera.`;
-    document.getElementById("imgPrompt").scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Step 3: generate image with reference photos + composed prompt
+    document.getElementById("compStatus").innerHTML = '<span class="spinner"></span>Generando imagen con fotos + prompt…';
+    const sel = document.getElementById("composeModelSel");
+    const COMPOSE_MODELS = [
+      { id: "openai/gpt-5-image",                    label: "GPT-5 Image",       modalities: ["image","text"] },
+      { id: "openai/gpt-5-image-mini",               label: "GPT-5 Image Mini",  modalities: ["image","text"] },
+      { id: "google/gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash",  modalities: ["image","text"] },
+      { id: "google/gemini-2.5-flash-image",         label: "Gemini 2.5 Flash",  modalities: ["image","text"] },
+      { id: "black-forest-labs/flux.2-pro",          label: "Flux.2 Pro",        modalities: ["image"] },
+    ];
+    const chosenModel = COMPOSE_MODELS.find(m => m.id === sel?.value) || COMPOSE_MODELS[0];
+
+    const content = [];
+    loaded.forEach((c, i) => {
+      content.push({ type: "image_url", image_url: { url: c.url } });
+      content.push({ type: "text", text: `Personaje ${i + 1}` });
+    });
+    content.push({ type: "text", text: `These are reference photos of ${loaded.length} character(s). Generate a scene image featuring EXACTLY these character(s), faithfully reproducing their appearance, clothing and facial features. ${finalPrompt}` });
+
+    const genRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: chosenModel.id, messages: [{ role: "user", content }], modalities: chosenModel.modalities })
+    });
+    if (!genRes.ok) throw new Error(await genRes.text());
+    const genData = await genRes.json();
+
+    const finishReason = genData.choices?.[0]?.native_finish_reason || genData.choices?.[0]?.finish_reason || "";
+    if (finishReason === "IMAGE_SAFETY" || finishReason === "SAFETY") {
+      throw new Error(`Bloqueado por filtro de seguridad (${chosenModel.label}). Intenta con otro modelo.`);
+    }
+
+    const msg = genData.choices?.[0]?.message;
+    let imgUrl = msg?.images?.[0]?.image_url?.url || null;
+    if (!imgUrl && typeof msg?.content === "string" && msg.content.startsWith("data:")) imgUrl = msg.content;
+    if (!imgUrl) {
+      const contentArr = Array.isArray(msg?.content) ? msg.content : [];
+      const imgPart = contentArr.find(p => p.type === "image_url");
+      if (imgPart) imgUrl = imgPart.image_url?.url;
+    }
+    if (!imgUrl) throw new Error(`${chosenModel.label} no devolvió imagen. Revisa la consola.`);
+
+    generatedImgUrl = imgUrl;
+    document.getElementById("generatedImg").src = imgUrl;
+    document.getElementById("imgDlBtn").href = imgUrl;
+    document.getElementById("imgResultSection").style.display = "block";
+    document.getElementById("compStatus").innerHTML = `✓ Escena lista · ${chosenModel.label} · ${loaded.length} personaje(s). Prompt guardado arriba.`;
+    document.getElementById("generatedImg").scrollIntoView({ behavior: "smooth", block: "center" });
 
   } catch(e) {
     document.getElementById("compStatus").textContent = "Error: " + e.message;
